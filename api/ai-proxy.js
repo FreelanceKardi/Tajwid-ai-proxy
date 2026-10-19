@@ -1,4 +1,4 @@
-// Proxy aman buat manggil Gemini API dari halaman Nun Sukun/Tanwin.
+// Proxy aman buat manggil Gemini API dari halaman Tajwid Challenge.
 // API key disimpan di Environment Variable Vercel (GEMINI_API_KEY),
 // TIDAK PERNAH ditaruh di kode halaman/HTML — jadi aman dari dicuri orang.
 
@@ -29,12 +29,12 @@ export default async function handler(req, res) {
     return;
   }
 
-  // GANTI "MODEL_ID_DI_SINI" sesuai nama model yang dipilih di aistudio.google.com
-  // (contoh umum: "gemini-flash-latest" atau nama versi Flash yang tersedia saat setup).
-  // Cek nama persisnya di dropdown model AI Studio sebelum deploy.
+  // Model gratis (free tier) Gemini. Kalau suatu saat mau ganti model,
+  // cek nama persisnya di dropdown AI Studio / halaman pricing Gemini.
   const MODEL_ID = 'gemini-3.8-flash';
+  const MAX_RETRIES = 2; // total percobaan = 1 awal + 2 ulang = 3x
 
-  try {
+  async function callGeminiOnce() {
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`,
       {
@@ -46,12 +46,35 @@ export default async function handler(req, res) {
       }
     );
     const data = await r.json();
-    if (!r.ok) {
-      res.status(502).json({ error: 'Gemini API error', detail: data });
-      return;
+    return { ok: r.ok, status: r.status, data };
+  }
+
+  try {
+    let lastDetail = null;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const { ok, status, data } = await callGeminiOnce();
+
+      if (ok) {
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        res.status(200).json({ text });
+        return;
+      }
+
+      lastDetail = data;
+
+      // Cuma retry kalau errornya memang sifatnya sementara:
+      // 503 = server Gemini lagi sibuk, 429 = kena rate limit sesaat.
+      // Error lain (misal API key salah / model salah) langsung berhenti, tidak usah diulang.
+      const isTransient = status === 503 || status === 429;
+      if (isTransient && attempt < MAX_RETRIES) {
+        const delayMs = 700 * (attempt + 1); // 700ms, lalu 1400ms
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+      break;
     }
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    res.status(200).json({ text });
+
+    res.status(502).json({ error: 'Gemini API error', detail: lastDetail });
   } catch (e) {
     res.status(500).json({ error: 'Gagal menghubungi Gemini API' });
   }
