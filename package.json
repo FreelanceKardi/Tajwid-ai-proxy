@@ -1,0 +1,6 @@
+{
+  "name": "tajwid-ai-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proxy kecil buat manggil Gemini API dengan aman dari halaman Nun Sukun/Tanwin MUGA."
+}
