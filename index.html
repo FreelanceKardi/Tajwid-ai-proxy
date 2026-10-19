@@ -164,6 +164,15 @@
       <h2>Siap Menerima Tantangan?</h2>
       <p style="color: var(--muted); margin: 0 0 10px;">Jawab 35 soal acak secara beruntun. Cepat dan Tepat adalah kuncinya!</p>
       <input type="text" id="playerName" placeholder="Masukkan Nama Kamu..." maxlength="15" />
+      <select id="playerKelas" style="width: 100%; max-width: 300px; padding: 14px 20px; font-size: 16px; border-radius: 12px; border: 2px solid var(--line); margin: 0 0 20px; font-family: inherit; font-weight: 600; text-align: center; color: var(--ink); background: var(--bg); outline: none;">
+        <option value="" disabled selected>Pilih Kelas Kamu...</option>
+        <option value="X-10">X-10</option>
+        <option value="X-11">X-11</option>
+        <option value="X-19">X-19</option>
+        <option value="X-22">X-22</option>
+        <option value="XI-11Sc">XI-11Sc</option>
+        <option value="XII-3SC">XII-3SC</option>
+      </select>
       <button class="action-btn" onclick="startGame()" style="max-width: 250px;">🚀 Mulai Sekarang</button>
     </div>
 
@@ -301,6 +310,7 @@ const MAX_SOAL = 35;
 let score = 0, total = 0, streak = 0, lives = 3, current = null;
 let timeLeft = 15, timerInterval, autoNextTimeout;
 let playerName = "Player";
+let playerKelas = "";
 const history = [];
 
 // Game Core
@@ -316,7 +326,10 @@ function shuffleArray(array) {
 function startGame() {
   const inputName = document.getElementById('playerName').value.trim();
   if(!inputName) { alert("Masukkan nama kamu dulu ya!"); return; }
+  const inputKelas = document.getElementById('playerKelas').value;
+  if(!inputKelas) { alert("Pilih kelas kamu dulu ya!"); return; }
   playerName = inputName;
+  playerKelas = inputKelas;
 
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('gameDashboard').style.display = 'block';
@@ -481,6 +494,17 @@ function endGame() {
   }
 
   saveAndRenderLeaderboard();
+  saveResultToServer();
+}
+
+function saveResultToServer() {
+  // Kirim hasil ke database pusat (biar Pak Sukardi bisa lihat rekap semua siswa).
+  // Dibikin "fire and forget": kalau gagal (misal lagi offline), permainan tetap jalan normal.
+  fetch('/api/save-result', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nama: playerName, kelas: playerKelas, skor: score, total: total })
+  }).catch(() => {});
 }
 
 async function requestEvaluation(e) {
