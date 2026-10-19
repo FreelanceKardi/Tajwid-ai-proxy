@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   // GANTI "MODEL_ID_DI_SINI" sesuai nama model yang dipilih di aistudio.google.com
   // (contoh umum: "gemini-flash-latest" atau nama versi Flash yang tersedia saat setup).
   // Cek nama persisnya di dropdown model AI Studio sebelum deploy.
-  const MODEL_ID = 'MODEL_ID_DI_SINI';
+  const MODEL_ID = '3.1 Pro';
 
   try {
     const r = await fetch(
